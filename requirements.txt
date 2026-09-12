@@ -1,0 +1,12 @@
+langgraph
+langgraph-checkpoint-sqlite
+langchain-groq
+pydantic>=2.7
+pypdf
+python-docx
+requests
+playwright
+exa-py
+fastapi
+uvicorn
+notion-client

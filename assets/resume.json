@@ -1,0 +1,16 @@
+{
+  "contact": {
+    "name": "Replace with your name",
+    "email": "you@example.com",
+    "phone": "",
+    "location": "",
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  },
+  "summary": "Replace with your professional summary.",
+  "experience_array": [],
+  "skills_list": ["Python", "FastAPI", "PySpark", "Snowflake"],
+  "education": [],
+  "additional_information": []
+}
