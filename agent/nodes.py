@@ -10,6 +10,7 @@ from tools.greenhouse import GreenhouseClient
 from tools.job_router import route_job
 from tools.job_parser import GroqRequirementsParser
 from tools.fit_analyzer import GroqFitAnalyzer, deterministic_analysis, deterministic_materials
+from server.telegram import TelegramClient
 
 
 def _now() -> str:
@@ -40,6 +41,10 @@ def discover_jobs(state: AgentState) -> AgentState:
             if key not in seen:
                 seen.add(key)
                 jobs.append(job)
+                if criteria.get("max_jobs") and len(jobs) >= int(criteria["max_jobs"]):
+                    break
+        if criteria.get("max_jobs") and len(jobs) >= int(criteria["max_jobs"]):
+            break
 
     if not jobs:
         jobs = [
@@ -89,7 +94,12 @@ def prepare_jobs(state: AgentState) -> AgentState:
 
     for index, job in enumerate(state.get("discovered_jobs", [])):
         score = (72 if index % 2 == 0 else 45) if job.get("mock") else None
-        prepared_job = {**job, **({"match_score": score} if score is not None else {}), "prepared_at": _now()}
+        prepared_job = {
+            **job,
+            **({"match_score": score} if score is not None else {}),
+            "prepared_at": _now(),
+            "thread_id": state["hardcoded_criteria"].get("thread_id", "local-run"),
+        }
         if score is not None and score < threshold:
             prepared_job.update(status="skipped", reason="low_match")
             skipped.append(prepared_job)
@@ -141,14 +151,16 @@ def route_and_parse_job(state: AgentState) -> AgentState:
         routed = route_job(active)
         if state["hardcoded_criteria"].get("groq_enabled", True) and os.getenv("GROQ_API_KEY"):
             raw_text = routed["job_description"].get("raw_text", routed.get("raw_snippet", ""))
-            routed = {
-                **routed,
-                "job_description": {
-                    **GroqRequirementsParser().parse(raw_text),
-                    "raw_text": raw_text,
-                },
-            }
-            parser_status = "groq"
+            try:
+                parsed = GroqRequirementsParser().parse(raw_text)
+            except Exception:
+                parser_status = "deterministic_fallback"
+            else:
+                routed = {
+                    **routed,
+                    "job_description": {**parsed, "raw_text": raw_text},
+                }
+                parser_status = "groq"
 
     pending = [routed if job.get("url") == active.get("url") else job for job in state.get("pending_jobs", [])]
     return {
@@ -191,9 +203,20 @@ def score_and_tailor(state: AgentState) -> AgentState:
         materials = {"resume_bullets": [], "cover_letter": "Shell placeholder cover letter."}
     elif criteria.get("groq_enabled", True) and os.getenv("GROQ_API_KEY"):
         analyzer = GroqFitAnalyzer()
-        analysis = analyzer.analyze(resume, description)
-        materials = analyzer.tailor(resume, description, analysis)
-        analyzer_status = "groq"
+        try:
+            analysis = analyzer.analyze(resume, description)
+        except Exception:
+            analysis = deterministic_analysis(resume, description)
+            materials = deterministic_materials(resume)
+            analyzer_status = "deterministic_fallback"
+        else:
+            try:
+                materials = analyzer.tailor(resume, description, analysis)
+            except Exception:
+                materials = deterministic_materials(resume)
+                analyzer_status = "groq_with_deterministic_tailoring_fallback"
+            else:
+                analyzer_status = "groq"
     else:
         analysis = deterministic_analysis(resume, description)
         materials = deterministic_materials(resume)
@@ -232,15 +255,26 @@ def score_and_tailor(state: AgentState) -> AgentState:
 def wait_for_approval(state: AgentState) -> AgentState:
     if not state.get("active_job"):
         return {"status": "completed"}
+    processing_log = _log(state, "approval_gate_reached", url=state["active_job"]["url"])
+    validation_notes = _note(
+        state,
+        "telegram_hitl",
+        "placeholder",
+        "Telegram approval is not connected; resume this checkpoint with human_decision set to approve or skip.",
+    )
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    if token and chat_id and not state["active_job"].get("mock"):
+        TelegramClient(token, chat_id).send_approval(
+            state["active_job"],
+            state.get("tailored_materials", {}).get("cover_letter", ""),
+        )
+        processing_log = [*processing_log, {"at": _now(), "event": "telegram_approval_sent", "url": state["active_job"]["url"]}]
+        validation_notes = _note(state, "telegram_hitl", "complete", "Approval message sent with approve and skip actions.")
     return {
         "status": "approval_received",
-        "processing_log": _log(state, "approval_gate_reached", url=state["active_job"]["url"]),
-        "validation_notes": _note(
-            state,
-            "telegram_hitl",
-            "placeholder",
-            "Telegram approval is not connected; resume this checkpoint with human_decision set to approve or skip.",
-        ),
+        "processing_log": processing_log,
+        "validation_notes": validation_notes,
     }
 
 

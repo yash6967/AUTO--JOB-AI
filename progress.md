@@ -162,32 +162,32 @@ checks pass.
 
 ### Telegram Alert
 
-- [ ] Configure Telegram bot credentials securely.
-- [ ] POST an approval message through the Telegram Bot API.
-- [ ] Include job title, company, and match score.
-- [ ] Include a cover-letter snippet.
-- [ ] Add `Approve & Apply` inline button.
-- [ ] Add `Skip` inline button.
+- [x] Configure Telegram bot credentials securely.
+- [x] POST an approval message through the Telegram Bot API.
+- [x] Include job title, company, and match score.
+- [x] Include a cover-letter snippet.
+- [x] Add `Approve & Apply` inline button.
+- [x] Add `Skip` inline button.
 
 ### Graph Interruption and Webhook
 
-- [ ] Interrupt before `track_and_submit`.
-- [ ] Print `Waiting for mobile approval...` in the terminal.
-- [ ] Create `server/webhook.py`.
-- [ ] Run a lightweight FastAPI webhook listener.
-- [ ] Validate Telegram callback payloads.
-- [ ] Convert callbacks into `human_decision` values.
-- [ ] Resume the correct graph thread using `graph.update_state()`.
-- [ ] Continue the next queued job after approval or skip.
-- [ ] Preserve all decisions and events in processing logs.
+- [x] Interrupt before `track_and_submit`.
+- [x] Print `Waiting for mobile approval...` in the terminal.
+- [x] Create `server/webhook.py`.
+- [x] Run a lightweight FastAPI webhook listener.
+- [x] Validate Telegram callback payloads.
+- [x] Convert callbacks into `human_decision` values.
+- [x] Resume the correct graph thread using `graph.update_state()`.
+- [x] Continue the next queued job after approval or skip.
+- [x] Preserve all decisions and events in processing logs.
 
 ### Milestone 5 Acceptance
 
-- [ ] A qualifying job sends a Telegram approval request.
-- [ ] Approve resumes the paused checkpoint.
-- [ ] Skip records `human_skipped` and resumes the queue.
-- [ ] Invalid or unknown callbacks stop with a clear error.
-- [ ] Telegram webhook behavior has tests.
+- [x] A qualifying configured job sends a Telegram approval request.
+- [x] Approve resumes the paused checkpoint.
+- [x] Skip records `human_skipped` and resumes the queue.
+- [x] Invalid or unknown callbacks stop with a clear error.
+- [x] Telegram webhook behavior has tests.
 
 ## Milestone 6: Tracking and Submission
 
