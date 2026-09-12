@@ -26,12 +26,12 @@
 
 ### Milestone 2: Greenhouse Job Discovery and Parsing
 
-- [ ] Add direct Greenhouse board URL configuration
-- [ ] Support standard `boards.greenhouse.io` URLs
-- [ ] Support custom Greenhouse domains without company-specific logic
-- [ ] Fetch and normalize Greenhouse job listings
-- [ ] Parse job descriptions into structured requirements
-- [ ] Add Greenhouse integration tests with mocked responses
+- [x] Add direct Greenhouse board URL configuration
+- [x] Support standard `boards.greenhouse.io` URLs
+- [x] Support custom Greenhouse domains without company-specific logic
+- [x] Fetch and normalize Greenhouse job listings
+- [x] Parse job descriptions into structured requirements
+- [x] Add Greenhouse integration tests with mocked responses
 
 ### Later Work
 

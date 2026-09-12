@@ -9,6 +9,7 @@ class JobRecord(TypedDict, total=False):
     url: str
     source: str
     raw_snippet: str
+    job_description: dict[str, Any]
     status: str
     match_score: int
     reason: str

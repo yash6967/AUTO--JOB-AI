@@ -15,6 +15,7 @@ DEFAULT_CRITERIA = {
     "remote_only": True,
     "minimum_match_score": 60,
     "greenhouse_board_urls": [],
+    "greenhouse_timeout": 15,
 }
 
 
@@ -23,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume", default="assets/resume.json", help="Path to JSON, PDF, DOCX, TXT, or Markdown resume")
     parser.add_argument("--thread-id", default="local-run", help="Persistent LangGraph checkpoint thread id")
     parser.add_argument("--database", default="runtime/agent.sqlite", help="SQLite checkpoint path")
+    parser.add_argument(
+        "--greenhouse-board-url",
+        action="append",
+        default=None,
+        help="Greenhouse board URL; repeat for multiple boards",
+    )
     return parser.parse_args()
 
 
@@ -31,7 +38,10 @@ def main() -> None:
     resume_path = Path(args.resume)
     normalized_resume = load_resume(resume_path)
     graph, connection = build_graph(args.database)
-    state = initial_state(DEFAULT_CRITERIA, str(resume_path))
+    criteria = {**DEFAULT_CRITERIA}
+    if args.greenhouse_board_url is not None:
+        criteria["greenhouse_board_urls"] = args.greenhouse_board_url
+    state = initial_state(criteria, str(resume_path))
     state["normalized_resume"] = normalized_resume
 
     try:

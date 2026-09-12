@@ -5,6 +5,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from agent.state import AgentState, JobRecord
+from tools.greenhouse import GreenhouseClient
 
 
 def _now() -> str:
@@ -25,21 +26,16 @@ def discover_jobs(state: AgentState) -> AgentState:
     seen: set[str] = set()
 
     configured_boards = criteria.get("greenhouse_board_urls", [])
+    client = GreenhouseClient(timeout=float(criteria.get("greenhouse_timeout", 15)))
     for board_url in configured_boards:
         parsed = urlparse(board_url)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError(f"Invalid Greenhouse board URL: {board_url}")
-        key = board_url.rstrip("/").lower()
-        if key not in seen:
-            seen.add(key)
-            jobs.append({
-                "title": criteria.get("roles", ["Software Engineer"])[0],
-                "company": "Configured Greenhouse board",
-                "url": board_url,
-                "source": "greenhouse",
-                "raw_snippet": "Shell placeholder: Greenhouse discovery is not connected yet.",
-                "status": "discovered",
-            })
+        for job in client.fetch_jobs(board_url, criteria.get("company")):
+            key = job["url"].rstrip("/").lower()
+            if key not in seen:
+                seen.add(key)
+                jobs.append(job)
 
     if not jobs:
         jobs = [
@@ -68,8 +64,8 @@ def discover_jobs(state: AgentState) -> AgentState:
         "validation_notes": _note(
             state,
             "job_discovery",
-            "placeholder",
-            "Using deterministic shell jobs; Exa, JSearch, and direct Greenhouse discovery are not connected yet.",
+            "complete" if configured_boards else "placeholder",
+            "Fetched and normalized Greenhouse board jobs." if configured_boards else "Using deterministic shell jobs until a Greenhouse board is configured.",
         ),
     }
 
