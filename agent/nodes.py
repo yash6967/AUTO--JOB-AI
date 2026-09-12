@@ -9,6 +9,7 @@ from agent.state import AgentState, JobRecord
 from tools.greenhouse import GreenhouseClient
 from tools.job_router import route_job
 from tools.job_parser import GroqRequirementsParser
+from tools.fit_analyzer import GroqFitAnalyzer, deterministic_analysis, deterministic_materials
 
 
 def _now() -> str:
@@ -87,9 +88,9 @@ def prepare_jobs(state: AgentState) -> AgentState:
     log = state.get("processing_log", [])
 
     for index, job in enumerate(state.get("discovered_jobs", [])):
-        score = 72 if index % 2 == 0 else 45
-        prepared_job = {**job, "match_score": score, "prepared_at": _now()}
-        if score < threshold:
+        score = (72 if index % 2 == 0 else 45) if job.get("mock") else None
+        prepared_job = {**job, **({"match_score": score} if score is not None else {}), "prepared_at": _now()}
+        if score is not None and score < threshold:
             prepared_job.update(status="skipped", reason="low_match")
             skipped.append(prepared_job)
             log = [*log, {"at": _now(), "event": "job_skipped", "reason": "low_match", "url": job["url"], "score": score}]
@@ -105,23 +106,16 @@ def prepare_jobs(state: AgentState) -> AgentState:
         "pending_jobs": pending,
         "skipped_jobs": skipped,
         "active_job": first_job,
-        "match_score": int(first_job["match_score"]) if first_job else 0,
-        "job_description": {
-            "required_skills": ["Python", "API development"],
-            "years_experience": 3,
-            "core_responsibilities": ["Build reliable backend services"],
-        } if first_job else {},
-        "tailored_materials": {
-            "resume": "Shell placeholder resume draft.",
-            "cover_letter": "Shell placeholder cover letter.",
-        } if first_job else {},
+        "match_score": int(first_job.get("match_score", 0)) if first_job else 0,
+        "job_description": {},
+        "tailored_materials": {},
         "status": "awaiting_approval" if first_job else "completed",
         "processing_log": log,
         "validation_notes": _note(
             state,
             "preparation_and_tailoring",
             "placeholder",
-            "Scores and documents are deterministic shell outputs; Groq is not called in Milestone 1.",
+            "Real jobs are scored and tailored after routing; mock jobs retain deterministic shell scores.",
         ),
     }
 
@@ -175,6 +169,63 @@ def route_and_parse_job(state: AgentState) -> AgentState:
             "complete" if routed.get("route") != "mock" else "placeholder",
             f"Routed job through {routed.get('route', 'unknown')} and parsed requirements with {parser_status} parser.",
         ),
+    }
+
+
+def score_and_tailor(state: AgentState) -> AgentState:
+    active = state.get("active_job")
+    if not active:
+        return {"status": "completed"}
+
+    criteria = state["hardcoded_criteria"]
+    resume = state.get("normalized_resume", {})
+    description = state.get("job_description", {})
+    analyzer_status = "deterministic"
+    if active.get("mock"):
+        analysis = {
+            "match_score": int(active.get("match_score", 0)),
+            "matching_skills": [],
+            "missing_requirements": [],
+            "rationale": "Deterministic shell score.",
+        }
+        materials = {"resume_bullets": [], "cover_letter": "Shell placeholder cover letter."}
+    elif criteria.get("groq_enabled", True) and os.getenv("GROQ_API_KEY"):
+        analyzer = GroqFitAnalyzer()
+        analysis = analyzer.analyze(resume, description)
+        materials = analyzer.tailor(resume, description, analysis)
+        analyzer_status = "groq"
+    else:
+        analysis = deterministic_analysis(resume, description)
+        materials = deterministic_materials(resume)
+
+    score = int(analysis["match_score"])
+    threshold = int(criteria.get("minimum_match_score", 60))
+    updated = {**active, "match_score": score, "fit_analysis": analysis}
+    pending = [updated if job.get("url") == active.get("url") else job for job in state.get("pending_jobs", [])]
+    if score < threshold:
+        skipped = [*state.get("skipped_jobs", []), {**updated, "status": "skipped", "reason": "low_match"}]
+        pending = [job for job in pending if job.get("url") != active.get("url")]
+        next_job = pending[0] if pending else None
+        return {
+            "pending_jobs": pending,
+            "skipped_jobs": skipped,
+            "active_job": next_job,
+            "match_score": int(next_job.get("match_score", 0)) if next_job else 0,
+            "tailored_materials": {},
+            "status": "awaiting_approval" if next_job else "completed",
+            "processing_log": _log(state, "job_skipped", url=active["url"], reason="low_match", score=score),
+            "validation_notes": _note(state, "match_scoring", "complete", f"Score {score} below threshold {threshold} using {analyzer_status} analysis."),
+        }
+
+    return {
+        "active_job": updated,
+        "pending_jobs": pending,
+        "skipped_jobs": [*state.get("skipped_jobs", [])],
+        "match_score": score,
+        "tailored_materials": materials,
+        "status": "awaiting_approval",
+        "processing_log": _log(state, "job_prepared", url=active["url"], score=score),
+        "validation_notes": _note(state, "match_scoring_and_tailoring", "complete", f"Scored and tailored with {analyzer_status} analysis."),
     }
 
 

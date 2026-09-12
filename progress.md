@@ -134,29 +134,29 @@ checks pass.
 
 ### Fit Analysis
 
-- [ ] Load the local normalized `assets/resume.json` profile.
-- [ ] Send the profile and `job_description` to Groq.
-- [ ] Produce a numeric match score from 0 to 100.
-- [ ] Identify matching skills and missing requirements.
-- [ ] Route scores below the configured threshold to `Skipped`.
-- [ ] Record the low-match reason and print it to the terminal.
-- [ ] Continue automatically to the next queued job after a low match.
+- [x] Load the local normalized `assets/resume.json` profile.
+- [x] Send the profile and `job_description` to Groq when configured.
+- [x] Produce a numeric match score from 0 to 100.
+- [x] Identify matching skills and missing requirements.
+- [x] Route scores below the configured threshold to `Skipped`.
+- [x] Record the low-match reason in processing logs and state.
+- [x] Continue automatically to the next queued job after a low match.
 
 ### Document Tailoring
 
-- [ ] Tailor resume bullet points using matched job keywords.
-- [ ] Preserve factual profile information and do not invent experience.
-- [ ] Draft a concise targeted cover letter.
-- [ ] Save resume and cover letter outputs to `tailored_materials`.
+- [x] Tailor resume bullet points using matched job keywords when Groq is configured.
+- [x] Preserve factual profile information and do not invent experience.
+- [x] Draft a concise targeted cover letter.
+- [x] Save resume and cover letter outputs to `tailored_materials`.
 - [ ] Generate clean ATS-formatted PDF documents.
 - [ ] Store generated document paths and processing metadata.
 
 ### Milestone 4 Acceptance
 
-- [ ] Scoring has mocked Groq tests for valid 0-100 output.
-- [ ] Threshold routing has tests for below-threshold and qualifying scores.
-- [ ] Tailoring output has tests for required fields and factual preservation.
-- [ ] The full queue continues after skipped jobs.
+- [x] Scoring has mocked Groq tests for valid 0-100 output.
+- [x] Threshold routing has tests for below-threshold and qualifying scores.
+- [x] Tailoring output has tests for required fields and factual preservation.
+- [x] The full queue continues after skipped jobs.
 
 ## Milestone 5: Telegram Human-in-the-Loop
 
