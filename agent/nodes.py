@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlparse
 
 from agent.state import AgentState, JobRecord
 from tools.greenhouse import GreenhouseClient
+from tools.job_router import route_job
+from tools.job_parser import GroqRequirementsParser
 
 
 def _now() -> str:
@@ -45,6 +48,7 @@ def discover_jobs(state: AgentState) -> AgentState:
                 "url": "https://boards.greenhouse.io/example/jobs/1001",
                 "source": "greenhouse",
                 "raw_snippet": "Mock listing for graph-shell validation.",
+                "mock": True,
                 "status": "discovered",
             },
             {
@@ -53,6 +57,7 @@ def discover_jobs(state: AgentState) -> AgentState:
                 "url": "https://jobs.example.com/greenhouse/data-engineer",
                 "source": "greenhouse-custom-domain",
                 "raw_snippet": "Mock custom-domain listing for routing validation.",
+                "mock": True,
                 "status": "discovered",
             },
         ]
@@ -117,6 +122,58 @@ def prepare_jobs(state: AgentState) -> AgentState:
             "preparation_and_tailoring",
             "placeholder",
             "Scores and documents are deterministic shell outputs; Groq is not called in Milestone 1.",
+        ),
+    }
+
+
+def route_and_parse_job(state: AgentState) -> AgentState:
+    active = state.get("active_job")
+    if not active:
+        return {"status": "completed"}
+
+    parser_status = "deterministic"
+    if active.get("mock"):
+        routed = {
+            **active,
+            "route": "mock",
+            "job_description": {
+                "required_skills": [],
+                "years_experience": None,
+                "core_responsibilities": [active.get("raw_snippet", "")],
+                "raw_text": active.get("raw_snippet", ""),
+            },
+        }
+    else:
+        routed = route_job(active)
+        if state["hardcoded_criteria"].get("groq_enabled", True) and os.getenv("GROQ_API_KEY"):
+            raw_text = routed["job_description"].get("raw_text", routed.get("raw_snippet", ""))
+            routed = {
+                **routed,
+                "job_description": {
+                    **GroqRequirementsParser().parse(raw_text),
+                    "raw_text": raw_text,
+                },
+            }
+            parser_status = "groq"
+
+    pending = [routed if job.get("url") == active.get("url") else job for job in state.get("pending_jobs", [])]
+    return {
+        "active_job": routed,
+        "pending_jobs": pending,
+        "job_description": routed["job_description"],
+        "status": "awaiting_approval",
+        "processing_log": _log(
+            state,
+            "job_routed",
+            url=active["url"],
+            route=routed.get("route", "unknown"),
+            raw_text_length=len(routed["job_description"].get("raw_text", "")),
+        ),
+        "validation_notes": _note(
+            state,
+            "job_routing_and_parsing",
+            "complete" if routed.get("route") != "mock" else "placeholder",
+            f"Routed job through {routed.get('route', 'unknown')} and parsed requirements with {parser_status} parser.",
         ),
     }
 

@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from agent.graph import build_graph, checkpoint_config
 from agent.state import initial_state
 from tools.resume_parser import load_resume
@@ -34,6 +36,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    load_dotenv()
     args = parse_args()
     resume_path = Path(args.resume)
     normalized_resume = load_resume(resume_path)

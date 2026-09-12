@@ -10,6 +10,8 @@ class JobRecord(TypedDict, total=False):
     source: str
     raw_snippet: str
     job_description: dict[str, Any]
+    route: str
+    mock: bool
     status: str
     match_score: int
     reason: str

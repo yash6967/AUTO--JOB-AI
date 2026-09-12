@@ -97,6 +97,29 @@ class GreenhouseClient:
                 "source": board.source,
                 "raw_snippet": _description_text(content)[:500],
                 "job_description": parse_job_description(content),
+                "greenhouse_board_token": board.token,
+                "greenhouse_job_id": str(job.get("id", "")),
                 "status": "discovered",
             })
         return normalized
+
+    def fetch_job(self, job: dict[str, Any]) -> dict[str, Any]:
+        board_token = job.get("greenhouse_board_token")
+        job_id = job.get("greenhouse_job_id")
+        if not board_token or not job_id:
+            parsed = parse_board_url(job["url"])
+            path_parts = [part for part in urlparse(job["url"]).path.split("/") if part]
+            board_token = parsed.token
+            job_id = path_parts[-1]
+
+        endpoint = f"https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs/{job_id}"
+        response = self.session.get(endpoint, params={"content": "true"}, timeout=self.timeout)
+        response.raise_for_status()
+        payload = response.json()
+        content = payload.get("content", "")
+        return {
+            **job,
+            "title": payload.get("title", job.get("title", "Untitled role")),
+            "raw_snippet": _description_text(content)[:500],
+            "job_description": parse_job_description(content),
+        }

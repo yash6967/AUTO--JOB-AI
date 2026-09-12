@@ -103,32 +103,32 @@ checks pass.
 
 ### URL Routing
 
-- [ ] Pop the next job from the queue as `active_job`.
-- [ ] Detect standard Greenhouse URLs.
-- [ ] Detect custom Greenhouse domains without company-specific logic.
-- [ ] Fetch known Greenhouse job data through a lightweight REST/API path.
-- [ ] Detect Lever URLs.
-- [ ] Fetch known Lever job data through a lightweight REST/API path.
-- [ ] Route all other job pages to headless Playwright extraction.
-- [ ] Preserve raw extracted text and source metadata in processing logs.
+- [x] Pop the next job from the queue as `active_job`.
+- [x] Detect standard Greenhouse URLs.
+- [x] Detect custom Greenhouse domains without company-specific logic.
+- [x] Fetch known Greenhouse job data through a lightweight REST/API path.
+- [x] Detect Lever URLs.
+- [x] Fetch known Lever job data through a lightweight REST/API path.
+- [x] Route all other job pages to headless Playwright extraction.
+- [x] Preserve raw extracted text and source metadata in processing logs.
 
 ### Structured Requirement Parsing
 
-- [ ] Send extracted job text to Groq.
-- [ ] Use Pydantic structured output through `with_structured_output`.
-- [ ] Extract `required_skills`.
-- [ ] Extract `years_experience`.
-- [ ] Extract `core_responsibilities`.
-- [ ] Save the parsed result to `job_description`.
-- [ ] Stop clearly when scraping or parsing fails.
+- [x] Send extracted job text to Groq when `GROQ_API_KEY` is configured.
+- [x] Use Pydantic structured output through `with_structured_output`.
+- [x] Extract `required_skills` through the Groq structured parser.
+- [x] Extract `years_experience` through the Groq structured parser.
+- [x] Extract `core_responsibilities` through the Groq structured parser.
+- [x] Save the current deterministic parsed result to `job_description`.
+- [x] Stop clearly when scraping or parsing fails.
 
 ### Milestone 3 Acceptance
 
-- [ ] Greenhouse standard URLs pass mocked routing tests.
-- [ ] Greenhouse custom domains pass mocked routing tests.
-- [ ] Lever URLs pass mocked routing tests.
-- [ ] Generic pages pass Playwright routing tests.
-- [ ] Structured parser output passes schema validation tests.
+- [x] Greenhouse standard URLs pass mocked routing tests.
+- [x] Greenhouse custom domains pass mocked routing tests.
+- [x] Lever URLs pass mocked routing tests.
+- [x] Generic pages pass Playwright routing tests.
+- [x] Structured parser output passes schema validation tests.
 
 ## Milestone 4: Match Scoring and Tailoring
 
