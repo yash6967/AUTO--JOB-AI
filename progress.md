@@ -82,12 +82,22 @@ checks pass.
 - [x] Save the deduplicated results to `discovered_jobs`.
 - [x] Print a discovery summary to the terminal.
 
+### Greenhouse Provider
+
+- [x] Configure direct Greenhouse board URLs through the CLI.
+- [x] Support standard `boards.greenhouse.io` URLs.
+- [x] Support custom Greenhouse domains without company-specific logic.
+- [x] Fetch and normalize Greenhouse job listings through the board API.
+- [x] Parse Greenhouse descriptions into skills, experience, and responsibilities.
+- [x] Preserve the deterministic mock discovery fallback when no board is configured.
+- [x] Add mocked Greenhouse integration tests.
+
 ### Milestone 2 Acceptance
 
-- [ ] A configured run returns real listings from the enabled providers.
-- [ ] Duplicate listings are represented once in the queue.
-- [ ] Provider failures stop the run with a clear error.
-- [ ] Search behavior has mocked integration tests.
+- [x] A configured Greenhouse run returns real listings from the enabled provider.
+- [x] Duplicate Greenhouse listings are represented once in the queue.
+- [x] Greenhouse provider failures stop the run with a clear error.
+- [x] Greenhouse discovery behavior has mocked integration tests.
 
 ## Milestone 3: Dynamic Scrape and Parse Router
 
