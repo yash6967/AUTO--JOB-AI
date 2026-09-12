@@ -39,6 +39,8 @@ class AgentState(TypedDict, total=False):
     applied_jobs: list[JobRecord]
     processing_log: list[dict[str, Any]]
     validation_notes: list[ValidationNote]
+    error_logs: list[dict[str, Any]]
+    confirmation: dict[str, Any] | None
     status: str
     resume_path: str
     normalized_resume: dict[str, Any]
@@ -61,6 +63,8 @@ def initial_state(
         "applied_jobs": [],
         "processing_log": [],
         "validation_notes": [],
+        "error_logs": [],
+        "confirmation": None,
         "status": "initialized",
         "resume_path": resume_path,
         "normalized_resume": {},

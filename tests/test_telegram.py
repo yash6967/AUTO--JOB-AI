@@ -20,33 +20,44 @@ def test_telegram_client_sends_approval_buttons():
     assert result["ok"] is True
     payload = session.post.call_args.kwargs["json"]
     buttons = payload["reply_markup"]["inline_keyboard"][0]
-    assert buttons[0]["callback_data"] == "job:approve:thread-1:https://example.com/job"
-    assert buttons[1]["callback_data"] == "job:skip:thread-1:https://example.com/job"
+    assert buttons[0]["callback_data"] == "job:approve:thread-1"
+    assert buttons[1]["callback_data"] == "job:skip:thread-1"
 
 
 def test_parse_callback_data_validates_decision_and_job():
-    assert parse_callback_data("job:approve:thread-1:https%3A%2F%2Fexample.com%2Fjob") == {
+    assert parse_callback_data("job:approve:thread-1") == {
         "decision": "approve",
         "thread_id": "thread-1",
-        "url": "https://example.com/job",
+        "url": "",
     }
     with pytest.raises(ValueError):
         parse_callback_data("invalid")
 
 
-def test_resume_approval_updates_matching_checkpoint():
+def test_resume_approval_updates_matching_checkpoint(monkeypatch):
+    monkeypatch.setenv("AGENT_DATABASE", "/tmp/test-agent.sqlite")
     graph = Mock()
-    graph.get_state.return_value.values = {"active_job": {"url": "https://example.com/job"}}
+    graph.get_state.return_value.values = {
+        "hardcoded_criteria": {},
+        "active_job": {"url": "https://example.com/job"},
+    }
     graph.invoke.return_value = {"status": "completed"}
     connection = Mock()
     factory = Mock(return_value=(graph, connection))
 
-    result = resume_approval({"callback_query": {"data": "job:skip:thread-1:https%3A%2F%2Fexample.com%2Fjob"}}, factory)
+    result = resume_approval({"callback_query": {"data": "job:skip:thread-1"}}, factory)
 
     assert result["decision"] == "skip"
     graph.update_state.assert_called_once()
     graph.invoke.assert_called_once()
     connection.close.assert_called_once()
+
+
+def test_resume_approval_rejects_missing_database_configuration(monkeypatch):
+    monkeypatch.delenv("AGENT_DATABASE", raising=False)
+
+    with pytest.raises(ValueError, match="AGENT_DATABASE is not configured"):
+        resume_approval({"callback_query": {"data": "job:skip:thread-1"}})
 
 
 def test_wait_for_approval_sends_configured_telegram_message(monkeypatch):

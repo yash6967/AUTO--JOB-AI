@@ -42,7 +42,7 @@ def build_graph(database_path: str | Path = "runtime/agent.sqlite") -> tuple[Any
 
     graph = builder.compile(
         checkpointer=checkpointer,
-        interrupt_before=["wait_for_approval"],
+        interrupt_before=["track_and_submit"],
     )
     return graph, connection
 

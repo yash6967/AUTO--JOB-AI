@@ -11,13 +11,14 @@ from agent.graph import build_graph, checkpoint_config
 from agent.state import initial_state
 from tools.resume_parser import load_resume
 from server.telegram import TelegramClient
+from tools.tracking import NotionTracker
 
 
 DEFAULT_CRITERIA = {
     "roles": ["Software Development Engineer", "Backend Engineer", "Data Engineer"],
     "locations": ["Remote"],
     "remote_only": True,
-    "minimum_match_score": 60,
+    "minimum_match_score": 10,
     "greenhouse_board_urls": [],
     "greenhouse_timeout": 15,
 }
@@ -45,6 +46,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Send a standalone Telegram approval test message and exit",
     )
+    parser.add_argument(
+        "--notion-test",
+        action="store_true",
+        help="Create a standalone Notion tracking test page and exit",
+    )
     return parser.parse_args()
 
 
@@ -67,6 +73,21 @@ def main() -> None:
         )
         print(json.dumps({"telegram_ok": result.get("ok", False), "message_id": result.get("result", {}).get("message_id")}, indent=2))
         return
+    if args.notion_test:
+        result = NotionTracker(
+            os.getenv("NOTION_TOKEN", ""),
+            os.getenv("NOTION_DATABASE_ID", ""),
+        ).record_decision(
+            {
+                "title": "Notion integration test",
+                "company": "Auto Job AI",
+                "url": "https://example.com/notion-test",
+                "match_score": 100,
+            },
+            "test",
+        )
+        print(json.dumps({"notion_ok": True, "page_id": result.get("id")}, indent=2))
+        return
     resume_path = Path(args.resume)
     normalized_resume = load_resume(resume_path)
     graph, connection = build_graph(args.database)
@@ -78,6 +99,7 @@ def main() -> None:
             raise ValueError("--max-jobs must be at least 1")
         criteria["max_jobs"] = args.max_jobs
     criteria["thread_id"] = args.thread_id
+    criteria["notion_enabled"] = bool(os.getenv("NOTION_TOKEN") and os.getenv("NOTION_DATABASE_ID"))
     state = initial_state(criteria, str(resume_path))
     state["normalized_resume"] = normalized_resume
 
@@ -94,8 +116,15 @@ def main() -> None:
         "pending_jobs": len(result.get("pending_jobs", [])),
         "skipped_jobs": len(result.get("skipped_jobs", [])),
         "applied_jobs": len(result.get("applied_jobs", [])),
+        "confirmation": result.get("confirmation"),
+        "error_logs": result.get("error_logs", []),
         "validation_notes": result.get("validation_notes", []),
-        "next_step": "Set human_decision to approve or skip and resume the checkpoint." if result.get("pending_jobs") else "Batch complete.",
+        "next_step": (
+            "Keep the Telegram webhook running, then click Approve & Apply or Skip. "
+            "The webhook will resume this checkpoint."
+            if result.get("pending_jobs")
+            else "Batch complete."
+        ),
     }, indent=2))
 
 

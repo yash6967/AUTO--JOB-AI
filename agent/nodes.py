@@ -11,6 +11,8 @@ from tools.job_router import route_job
 from tools.job_parser import GroqRequirementsParser
 from tools.fit_analyzer import GroqFitAnalyzer, deterministic_analysis, deterministic_materials
 from server.telegram import TelegramClient
+from tools.submission import EmailSubmitter, PlaywrightSubmitter
+from tools.tracking import NotionTracker
 
 
 def _now() -> str:
@@ -272,7 +274,7 @@ def wait_for_approval(state: AgentState) -> AgentState:
         processing_log = [*processing_log, {"at": _now(), "event": "telegram_approval_sent", "url": state["active_job"]["url"]}]
         validation_notes = _note(state, "telegram_hitl", "complete", "Approval message sent with approve and skip actions.")
     return {
-        "status": "approval_received",
+        "status": "awaiting_approval",
         "processing_log": processing_log,
         "validation_notes": validation_notes,
     }
@@ -287,16 +289,87 @@ def track_and_submit(state: AgentState) -> AgentState:
     pending = [job for job in state.get("pending_jobs", []) if job.get("url") != active.get("url")]
     applied = [*state.get("applied_jobs", [])]
     skipped = [*state.get("skipped_jobs", [])]
+    error_logs = [*state.get("error_logs", [])]
+    confirmation: dict[str, Any] | None = None
     log = state.get("processing_log", [])
 
     if decision == "approve":
-        completed = {**active, "status": "applied", "submitted_at": _now()}
-        applied.append(completed)
-        event = "job_applied"
+        submission_result: dict[str, Any] = {"channel": "dry_run"}
+        submission_mode = os.getenv("SUBMISSION_MODE", "dry_run").lower()
+        try:
+            if submission_mode == "email":
+                submitter = EmailSubmitter(
+                    os.environ["SMTP_HOST"],
+                    int(os.getenv("SMTP_PORT", "587")),
+                    os.environ["SMTP_USERNAME"],
+                    os.environ["SMTP_PASSWORD"],
+                )
+                submission_result = submitter.submit(
+                    active,
+                    state.get("normalized_resume", {}),
+                    state.get("tailored_materials", {}),
+                    state.get("tailored_materials", {}).get("resume_pdf"),
+                )
+            elif submission_mode == "playwright":
+                submission_result = PlaywrightSubmitter().submit(
+                    active,
+                    state.get("normalized_resume", {}),
+                    state.get("tailored_materials", {}),
+                    state.get("tailored_materials", {}).get("resume_pdf"),
+                )
+            elif submission_mode != "dry_run":
+                raise ValueError("SUBMISSION_MODE must be dry_run, email, or playwright")
+        except Exception as error:
+            error_entry = {
+                "at": _now(),
+                "component": "submission",
+                "channel": submission_mode,
+                "job_url": active.get("url", ""),
+                "job_title": active.get("title", ""),
+                "error_type": type(error).__name__,
+                "message": str(error),
+            }
+            error_logs.append(error_entry)
+            completed = {**active, "status": "submission_failed", "reason": "submission_error"}
+            event = "submission_failed"
+        else:
+            completed = {**active, "status": "applied", "submitted_at": _now()}
+            applied.append(completed)
+            confirmation = {
+                "status": "applied",
+                "message": "Application submitted successfully.",
+                "job_title": active.get("title", ""),
+                "company": active.get("company", ""),
+                "url": active.get("url", ""),
+                "submitted_at": completed["submitted_at"],
+                "channel": submission_result.get("channel", submission_mode),
+            }
+            event = "job_applied"
     else:
         completed = {**active, "status": "skipped", "reason": "human_skipped"}
         skipped.append(completed)
         event = "job_skipped"
+
+    notion_token = os.getenv("NOTION_TOKEN")
+    notion_database = os.getenv("NOTION_DATABASE_ID")
+    tracking_status = "disabled"
+    notion_enabled = state.get("hardcoded_criteria", {}).get("notion_enabled", False)
+    if notion_enabled and notion_token and notion_database:
+        decision_name = "approved" if decision == "approve" else "skipped"
+        try:
+            NotionTracker(notion_token, notion_database).record_decision(completed, decision_name)
+        except Exception as error:
+            error_logs.append({
+                "at": _now(),
+                "component": "notion_tracking",
+                "job_url": active.get("url", ""),
+                "job_title": active.get("title", ""),
+                "error_type": type(error).__name__,
+                "message": str(error),
+            })
+            tracking_status = "error"
+        else:
+            tracking_status = "notion"
 
     next_job = pending[0] if pending else None
     return {
@@ -306,12 +379,23 @@ def track_and_submit(state: AgentState) -> AgentState:
         "match_score": int(next_job["match_score"]) if next_job else 0,
         "status": "awaiting_approval" if next_job else "completed",
         "applied_jobs": applied,
+        "error_logs": error_logs,
+        "confirmation": confirmation,
         "skipped_jobs": skipped,
-        "processing_log": [*log, {"at": _now(), "event": event, "url": active["url"]}],
+        "processing_log": [
+            *log,
+            {
+                "at": _now(),
+                "event": event,
+                "url": active["url"],
+                "submission": submission_result if decision == "approve" else None,
+                "tracking": tracking_status,
+            },
+        ],
         "validation_notes": _note(
             state,
             "notion_and_submission",
-            "placeholder",
-            "Notion logging and email/browser submission are not connected; this node records the decision only.",
+            "complete" if tracking_status in {"notion", "disabled"} else "error",
+            f"Submission and tracking completed with submission channel {submission_result.get('channel', 'none')} and tracking status {tracking_status}.",
         ),
     }

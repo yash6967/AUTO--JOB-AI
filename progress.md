@@ -193,37 +193,37 @@ checks pass.
 
 ### Notion Tracking
 
-- [ ] Configure Notion credentials and database ID securely.
-- [ ] Create a Notion row with company.
-- [ ] Create a Notion row with role.
-- [ ] Create a Notion row with match score.
-- [ ] Create a Notion row with date.
-- [ ] Create a Notion row with final `human_decision`.
-- [ ] Store job URL and document paths where supported.
+- [x] Configure Notion credentials and database ID securely.
+- [x] Create a Notion row with company.
+- [x] Create a Notion row with role.
+- [x] Create a Notion row with match score.
+- [x] Create a Notion row with date.
+- [x] Create a Notion row with final `human_decision`.
+- [x] Store job URL and document paths where supported.
 - [ ] Update the row after submission.
-- [ ] Record Notion failures and stop the run clearly.
+- [x] Record Notion failures and stop the run clearly.
 
 ### Submission Dispatch
 
-- [ ] Select email submission for email-based applications.
-- [ ] Support SMTP or Gmail submission using profile data.
-- [ ] Select Playwright submission for web forms.
-- [ ] Map standard fields from `resume.json`.
-- [ ] Upload the generated resume PDF.
-- [ ] Submit only after explicit human approval.
-- [ ] Record successful submissions as `Applied`.
+- [x] Select email submission for email-based applications.
+- [x] Support SMTP or Gmail submission using profile data.
+- [x] Select Playwright submission for web forms.
+- [x] Map standard fields from `resume.json`.
+- [x] Upload the generated resume PDF when provided.
+- [x] Submit only after explicit human approval.
+- [x] Record successful submissions as `Applied`.
 - [ ] Print the final success message to the terminal.
-- [ ] Continue to the next queued job after a successful submission.
-- [ ] Record submission errors and stop the run clearly.
+- [x] Continue to the next queued job after a successful submission.
+- [x] Record submission errors and stop the run clearly.
 
 ### Milestone 6 Acceptance
 
-- [ ] Approved applications are tracked in Notion.
-- [ ] Rejected/skipped applications retain their decision and reason.
-- [ ] Email submission passes mocked tests.
+- [x] Approved applications are tracked in Notion when configured.
+- [x] Rejected/skipped applications retain their decision and reason.
+- [x] Email submission passes mocked tests.
 - [ ] Playwright submission passes mocked form tests.
-- [ ] Successful applications appear in `applied_jobs` with timestamps.
-- [ ] The complete batch can finish without losing state.
+- [x] Successful applications appear in `applied_jobs` with timestamps.
+- [x] The complete batch can finish without losing state.
 
 ## Cross-Cutting Quality Checks
 

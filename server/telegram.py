@@ -47,4 +47,7 @@ class TelegramClient:
         url = job.get("url")
         if not thread_id or not url:
             raise ValueError("Approval callback requires thread_id and job url")
-        return f"job:{decision}:{thread_id}:{url}"
+        callback = f"job:{decision}:{thread_id}"
+        if len(callback.encode("utf-8")) > 64:
+            raise ValueError("Approval callback is too long; use a shorter thread id")
+        return callback

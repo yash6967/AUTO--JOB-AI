@@ -15,10 +15,10 @@ app = FastAPI(title="Auto Job AI Telegram Webhook")
 
 
 def parse_callback_data(callback_data: str) -> dict[str, str]:
-    parts = callback_data.split(":", 3)
-    if len(parts) != 4 or parts[0] != "job" or parts[1] not in {"approve", "skip"}:
+    parts = callback_data.split(":", 2)
+    if len(parts) != 3 or parts[0] != "job" or parts[1] not in {"approve", "skip"}:
         raise ValueError("Invalid Telegram callback data")
-    return {"decision": parts[1], "thread_id": parts[2], "url": unquote(parts[3])}
+    return {"decision": parts[1], "thread_id": parts[2], "url": ""}
 
 
 def resume_approval(payload: dict[str, Any], graph_factory=build_graph) -> dict[str, Any]:
@@ -27,12 +27,23 @@ def resume_approval(payload: dict[str, Any], graph_factory=build_graph) -> dict[
     if not isinstance(callback_data, str):
         raise ValueError("Telegram payload does not contain callback data")
     parsed = parse_callback_data(callback_data)
-    database = os.getenv("AGENT_DATABASE", "runtime/agent.sqlite")
+    database = os.getenv("AGENT_DATABASE")
+    if not database:
+        raise ValueError(
+            "AGENT_DATABASE is not configured. Set it to the exact SQLite path used by the CLI."
+        )
     graph, connection = graph_factory(database)
     try:
         current = graph.get_state(checkpoint_config(parsed["thread_id"])).values
+        if not current or "hardcoded_criteria" not in current:
+            raise ValueError(
+                f"No valid checkpoint found for thread '{parsed['thread_id']}' in '{database}'. "
+                "Use the same --database path for the CLI and webhook, then start a fresh run."
+            )
         active = current.get("active_job") or {}
-        if active.get("url") != parsed["url"]:
+        if not active:
+            raise ValueError(f"Checkpoint '{parsed['thread_id']}' has no active job to approve")
+        if parsed["url"] and active.get("url") != parsed["url"]:
             raise ValueError("Callback does not match the active job")
         graph.update_state(checkpoint_config(parsed["thread_id"]), {"human_decision": parsed["decision"]})
         result = graph.invoke(None, config=checkpoint_config(parsed["thread_id"]))

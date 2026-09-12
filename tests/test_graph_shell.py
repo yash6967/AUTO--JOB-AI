@@ -21,6 +21,7 @@ def test_batch_preparation_separates_low_matches(tmp_path):
     assert len(result["pending_jobs"]) == 1
     assert result["status"] == "awaiting_approval"
     assert result["validation_notes"]
+    assert any(entry["event"] == "approval_gate_reached" for entry in result["processing_log"])
 
 
 def test_resume_after_decision_processes_remaining_queue(tmp_path):
