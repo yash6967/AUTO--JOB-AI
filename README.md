@@ -148,17 +148,53 @@ AGENT_DATABASE=/tmp/auto-job-ai-real.sqlite \
 .venv/bin/uvicorn server.webhook:app --host 0.0.0.0 --port 8000
 ```
 
-Telegram cannot reach `localhost` directly. Start a public HTTPS tunnel in another terminal:
+Telegram cannot reach `localhost` directly. Use ngrok to expose the local webhook
+through a temporary public HTTPS URL.
+
+### Install and start ngrok
+
+Install ngrok from [ngrok.com/download](https://ngrok.com/download), then authenticate it with your ngrok account if prompted:
+
+```bash
+ngrok config add-authtoken YOUR_NGROK_AUTHTOKEN
+```
+
+Start the tunnel in another terminal:
 
 ```bash
 ngrok http 8000
 ```
+
+ngrok will display a forwarding address similar to:
+
+```text
+Forwarding https://example-name.ngrok-free.app -> http://localhost:8000
+```
+
+Copy the HTTPS address. Keep this ngrok terminal running while testing. The URL
+can change when ngrok restarts unless you use a reserved domain.
 
 Register the public URL with Telegram:
 
 ```bash
 curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook?url=https://YOUR-TUNNEL-DOMAIN/telegram/webhook"
 ```
+
+For example:
+
+```bash
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook?url=https://example-name.ngrok-free.app/telegram/webhook"
+```
+
+Verify the registered webhook:
+
+```bash
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getWebhookInfo"
+```
+
+The response should show your ngrok URL in `result.url` and a recent
+`last_error_message` should be absent. If the ngrok URL changes, call
+`setWebhook` again with the new URL.
 
 ### Terminal 2: Start the job run
 
