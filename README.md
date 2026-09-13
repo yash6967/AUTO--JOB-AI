@@ -1,6 +1,12 @@
 ##DEMO VIDEO:
 https://www.loom.com/share/719654cc7eb8465caac3d0275bd51e4a
 
+## External Apps
+Telegram
+Notion
+Greenhouse
+
+
 
 # Auto Job AI
 
