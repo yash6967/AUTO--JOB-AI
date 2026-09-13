@@ -10,3 +10,4 @@ exa-py
 fastapi
 uvicorn
 notion-client
+pytest
