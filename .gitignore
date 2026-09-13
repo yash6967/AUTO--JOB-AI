@@ -156,7 +156,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-/runtime
+runtime/
 
 # Spyder project settings
 .spyderproject
