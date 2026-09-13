@@ -1,3 +1,7 @@
+##DEMO VIDEO:
+https://www.loom.com/share/719654cc7eb8465caac3d0275bd51e4a
+
+
 # Auto Job AI
 
 A terminal-first job application agent built with LangGraph. It discovers jobs, parses requirements, scores fit against a normalized resume, requests human approval through Telegram, tracks decisions in Notion, and supports opt-in email or Playwright submission.
