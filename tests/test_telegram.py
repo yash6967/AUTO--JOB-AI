@@ -60,6 +60,22 @@ def test_resume_approval_rejects_missing_database_configuration(monkeypatch):
         resume_approval({"callback_query": {"data": "job:skip:thread-1"}})
 
 
+def test_resume_approval_is_idempotent_after_completion(monkeypatch):
+    monkeypatch.setenv("AGENT_DATABASE", "/tmp/test-agent.sqlite")
+    graph = Mock()
+    graph.get_state.return_value.values = {"hardcoded_criteria": {}, "status": "completed"}
+    connection = Mock()
+
+    result = resume_approval(
+        {"callback_query": {"data": "job:approve:thread-1"}},
+        Mock(return_value=(graph, connection)),
+    )
+
+    assert result["status"] == "already_completed"
+    graph.update_state.assert_not_called()
+    graph.invoke.assert_not_called()
+
+
 def test_wait_for_approval_sends_configured_telegram_message(monkeypatch):
     client = Mock()
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "token")

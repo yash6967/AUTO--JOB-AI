@@ -37,6 +37,8 @@ rm -f /tmp/auto-job-ai-telegram-e2e.sqlite
 The CLI exits after sending the approval message. That is expected. Keep
 Terminal 1 running; clicking the Telegram button sends a callback to the public
 webhook, which resumes the saved checkpoint and performs the decision.
+The webhook response includes the decision, applied/skipped counts, the
+`confirmation` block, and any `error_logs` produced by submission or Notion.
 
 To test Telegram delivery separately from the job graph:
 
@@ -62,6 +64,10 @@ Notion tracking is enabled by the CLI when both `NOTION_TOKEN` and
 `NOTION_DATABASE_ID` are set. Approved jobs use `SUBMISSION_MODE`, which defaults
 to `dry_run`. Set it to `email` with `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`,
 and `SMTP_PASSWORD`, or set it to `playwright` for web-form dispatch.
+
+With `SUBMISSION_MODE=dry_run`, clicking Approve & Apply does not fill a job
+form or send an application. It verifies the approval, checkpoint, tracking,
+and state flow only.
 
 Email jobs must include `application_email`. A resume PDF can be supplied through
 `tailored_materials["resume_pdf"]` before dispatch.

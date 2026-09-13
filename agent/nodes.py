@@ -294,8 +294,11 @@ def track_and_submit(state: AgentState) -> AgentState:
     log = state.get("processing_log", [])
 
     if decision == "approve":
-        submission_result: dict[str, Any] = {"channel": "dry_run"}
-        submission_mode = os.getenv("SUBMISSION_MODE", "dry_run").lower()
+        submission_mode = state.get("hardcoded_criteria", {}).get(
+            "submission_mode",
+            "dry_run",
+        )
+        submission_result: dict[str, Any] = {"channel": submission_mode}
         try:
             if submission_mode == "email":
                 submitter = EmailSubmitter(

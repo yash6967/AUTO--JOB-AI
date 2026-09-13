@@ -256,6 +256,35 @@ SUBMISSION_MODE=playwright
 
 Playwright maps standard contact fields, fills a cover letter, uploads `tailored_materials["resume_pdf"]` when available, and submits the form. Form selectors vary by site and may require provider-specific work.
 
+## Verify Submission Results
+
+The webhook terminal logs a callback result after Telegram approval. A `200 OK`
+means the callback was handled; it does not by itself prove submission success.
+
+Inspect the checkpoint directly:
+
+```bash
+.venv/bin/python -c "from agent.graph import build_graph, checkpoint_config; graph, connection = build_graph('/tmp/auto-job-ai-playwright.sqlite'); state = graph.get_state(checkpoint_config('playwright-test-1')).values; print({'status': state.get('status'), 'confirmation': state.get('confirmation'), 'error_logs': state.get('error_logs', []), 'last_event': state.get('processing_log', [])[-1] if state.get('processing_log') else None}); connection.close()"
+```
+
+Successful Playwright submission:
+
+```text
+confirmation.channel = "playwright"
+```
+
+Playwright ran but failed:
+
+```text
+error_logs[0].component = "submission"
+error_logs[0].channel = "playwright"
+```
+
+The current generic Playwright implementation can fail when a job site does
+not contain `button[type='submit']` or `input[type='submit']`. In that case the
+error log contains the selector timeout and the application is not marked as
+successfully submitted.
+
 ## Output and Error State
 
 After approval and successful dispatch, state includes a confirmation block similar to:

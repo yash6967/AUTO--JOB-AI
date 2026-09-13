@@ -30,7 +30,7 @@ def test_email_submitter_sends_factual_materials_without_network():
 def test_approved_job_is_recorded_as_applied_in_dry_run(monkeypatch):
     monkeypatch.setenv("SUBMISSION_MODE", "dry_run")
     result = track_and_submit({
-        "hardcoded_criteria": {"notion_enabled": False},
+        "hardcoded_criteria": {"notion_enabled": False, "submission_mode": "dry_run"},
         "active_job": {"url": "https://example.com/job", "title": "Backend Engineer", "match_score": 80},
         "pending_jobs": [{"url": "https://example.com/job", "title": "Backend Engineer", "match_score": 80}],
         "human_decision": "approve",
@@ -51,7 +51,7 @@ def test_submission_failure_is_stored_in_error_logs(monkeypatch):
     monkeypatch.setenv("SUBMISSION_MODE", "email")
     monkeypatch.delenv("SMTP_HOST", raising=False)
     result = track_and_submit({
-        "hardcoded_criteria": {"notion_enabled": False},
+        "hardcoded_criteria": {"notion_enabled": False, "submission_mode": "email"},
         "active_job": {"url": "https://example.com/job", "title": "Backend Engineer"},
         "pending_jobs": [{"url": "https://example.com/job", "title": "Backend Engineer"}],
         "human_decision": "approve",

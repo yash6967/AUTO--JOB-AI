@@ -100,6 +100,7 @@ def main() -> None:
         criteria["max_jobs"] = args.max_jobs
     criteria["thread_id"] = args.thread_id
     criteria["notion_enabled"] = bool(os.getenv("NOTION_TOKEN") and os.getenv("NOTION_DATABASE_ID"))
+    criteria["submission_mode"] = os.getenv("SUBMISSION_MODE", "dry_run").lower()
     state = initial_state(criteria, str(resume_path))
     state["normalized_resume"] = normalized_resume
 
