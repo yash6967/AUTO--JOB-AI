@@ -32,6 +32,8 @@ def test_greenhouse_client_normalizes_jobs_and_description():
 
     assert jobs[0]["title"] == "Backend Engineer"
     assert jobs[0]["source"] == "greenhouse"
+    assert jobs[0]["greenhouse_board_token"] == "acme"
+    assert jobs[0]["greenhouse_job_id"] == "42"
     assert jobs[0]["job_description"]["required_skills"] == ["Python", "SQL"]
     assert jobs[0]["job_description"]["years_experience"] == 3
     session.get.assert_called_once_with(

@@ -16,6 +16,18 @@ def test_notion_tracker_creates_decision_page():
     assert payload["properties"]["Status"]["status"]["name"] == "Approved"
 
 
+def test_notion_tracker_normalizes_missing_provider_fields():
+    client = Mock()
+    tracker = NotionTracker("token", "database", client=client)
+    tracker.record_decision({"title": None, "company": None, "url": None, "match_score": None}, "approved")
+
+    payload = client.pages.create.call_args.kwargs["properties"]
+    assert payload["Job Title"]["title"][0]["text"]["content"] == "Unknown role"
+    assert payload["Company"]["rich_text"][0]["text"]["content"] == "Unknown company"
+    assert payload["Match Score"]["number"] == 0
+    assert payload["Job URL"]["url"] is None
+
+
 def test_email_submitter_sends_factual_materials_without_network():
     submitter = EmailSubmitter("smtp.example.com", 587, "user@example.com", "password")
     with patch("tools.submission.smtplib.SMTP") as smtp:

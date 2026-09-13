@@ -1,0 +1,102 @@
+{
+  "demo_mode": false,
+  "location": "Noida, Uttar Pradesh, India",
+  "country": "India",
+  "linkedin_url": "https://job-boards.greenhouse.io/embed/job_app?token=7991839&for=coinbase&gh_jid=7991839",
+  "website_url": "",
+  "github_url": "",
+  "work_authorization": "Yes",
+  "requires_sponsorship": "Yes",
+  "salary_expectation": "",
+  "notice_period": "",
+  "contact": {
+    "name": "Atharva Bhawalkar",
+    "first_name": "Atharva",
+    "last_name": "Bhawalkar",
+    "email": "atharvabhawalkar147@gmail.com",
+    "phone": "9009399299"
+  },
+  "resume_filename_on_form": "III.pdf",
+  "cover_letter_filename_on_form": "IV.pdf",
+  "employment_history": [
+    {
+      "company": "Innovaccer",
+      "title": "sde",
+      "start_month": "March",
+      "start_year": "2022",
+      "end_month": "",
+      "end_year": "",
+      "current_role": true
+    }
+  ],
+  "education_history": [
+    {
+      "school": "0 - Not Applicable",
+      "degree": "Associate's Degree",
+      "discipline": "Accounting",
+      "start_year": "",
+      "end_year": ""
+    }
+  ],
+  "answers": {
+    "age_18_or_older": "Yes",
+    "previously_employed_by_company": "Yes",
+    "how_heard_about_job": "Career Page",
+    "privacy_notice_and_arbitration_acknowledged": "Confirmed",
+    "ai_tools_in_application_process_acknowledged": "Yes",
+    "ai_tools_usage": "I am opposed to using AI tools in my workflow and prefer traditional/manual workflows.",
+    "legally_authorized_to_work": "Yes",
+    "requires_sponsorship_now_or_future": "Yes",
+    "government_official_or_recently": "No, I am not a current or former Government Official",
+    "relative_is_government_official": "No, I am not a relative of a government official.",
+    "conflict_of_interest": "Yes",
+    "referred_by_client_or_partner": "Yes",
+    "country": "India",
+    "state": "Uttar Pradesh",
+    "city": "Noida"
+  },
+  "questions": {
+    "First Name": "Atharva",
+    "Last Name": "Bhawalkar",
+    "Email": "atharvabhawalkar147@gmail.com",
+    "Country": "India",
+    "Phone": "9009399299",
+    "Location (City)": "Noida, Uttar Pradesh, India",
+    "Resume/CV": "III.pdf",
+    "Cover Letter": "IV.pdf",
+    "Company name": "Innovaccer",
+    "Title": "sde",
+    "Start date month": "March",
+    "Start date year": "2022",
+    "End date month": "",
+    "End date year": "",
+    "Current role": true,
+    "School": "0 - Not Applicable",
+    "Degree": "Associate's Degree",
+    "Discipline": "Accounting",
+    "Linkedin Profile URL": "https://job-boards.greenhouse.io/embed/job_app?token=7991839&for=coinbase&gh_jid=7991839",
+    "Are you at least 18 years of age?": "Yes",
+    "Have you previously been employed by Coinbase in any capacity?": "Yes",
+    "How did you hear about this job?": "Career Page",
+    "Please confirm receipt of the above linked Global Data Privacy Notice and US Arbitration Agreement.": "Confirmed",
+    "I understand that Coinbase may use AI tools to assist in the application and interview process.": "Yes",
+    "Which of the following best describes how you use AI tools today?": "I am opposed to using AI tools in my workflow and prefer traditional/manual workflows.",
+    "Are you legally authorized to work in the country where this position is located?": "Yes",
+    "Will you require sponsorship for employment visa status now or in the future?": "Yes",
+    "Are you a current government official or were you a government official in the last five years?": "No, I am not a current or former Government Official",
+    "Are you a close relative of a government official?": "No, I am not a relative of a government official.",
+    "Could you or a close relative have a conflict of interest with a company connected to Coinbase?": "Yes",
+    "Were you referred by a senior leader or decision-maker at a Coinbase client, partner, or vendor?": "Yes",
+    "Gender": "Male",
+    "Are you Hispanic/Latino?": "Yes",
+    "Veteran Status": "I am not a protected veteran",
+    "Disability Status": "No, I do not have a disability and have not had one in the past"
+  },
+  "demographic_answers": {
+    "gender": "Male",
+    "hispanic_or_latino": "Yes",
+    "race": "",
+    "veteran_status": "I am not a protected veteran",
+    "disability_status": "No, I do not have a disability and have not had one in the past"
+  }
+}

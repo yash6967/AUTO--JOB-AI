@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -103,6 +104,33 @@ class GreenhouseClient:
             })
         return normalized
 
+    def search_jobs(self, query: str, company: str | None = None, max_results: int = 25) -> list[dict[str, Any]]:
+        api_key = os.getenv("EXA_API_KEY")
+        if not api_key or api_key.strip().lower() in {"your_key", "your_api_key", "changeme"}:
+            raise ValueError("EXA_API_KEY is missing or still set to a placeholder; remove EXA_API_KEY=your_key and configure the real key in .env")
+        response = self.session.post(
+            "https://api.exa.ai/search",
+            headers={"x-api-key": api_key, "Content-Type": "application/json"},
+            json={"query": f"{query} site:boards.greenhouse.io", "numResults": max_results, "type": "auto"},
+            timeout=self.timeout,
+        )
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as error:
+            if response.status_code in {401, 403}:
+                raise ValueError("EXA_API_KEY was rejected by Exa; verify the key in .env and do not override it with EXA_API_KEY=your_key") from error
+            raise
+        jobs: list[dict[str, Any]] = []
+        for result in response.json().get("results", []):
+            url = result.get("url", "")
+            if "boards.greenhouse.io/" not in url or "/jobs/" not in url:
+                continue
+            try:
+                jobs.append(self.fetch_job({"url": url, "company": company, "source": "greenhouse"}))
+            except (KeyError, ValueError, requests.RequestException):
+                continue
+        return jobs
+
     def fetch_job(self, job: dict[str, Any]) -> dict[str, Any]:
         board_token = job.get("greenhouse_board_token")
         job_id = job.get("greenhouse_job_id")
@@ -120,6 +148,9 @@ class GreenhouseClient:
         return {
             **job,
             "title": payload.get("title", job.get("title", "Untitled role")),
+            "company": job.get("company") or payload.get("company_name") or board_token,
+            "greenhouse_board_token": board_token,
+            "greenhouse_job_id": str(job_id),
             "raw_snippet": _description_text(content)[:500],
             "job_description": parse_job_description(content),
         }

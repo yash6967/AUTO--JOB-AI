@@ -64,5 +64,12 @@ def deterministic_analysis(resume: dict[str, Any], job_description: dict[str, An
 
 
 def deterministic_materials(resume: dict[str, Any]) -> dict[str, Any]:
-    bullets = [str(item.get("description", item.get("summary", ""))) for item in resume.get("experience_array", [])]
+    bullets: list[str] = []
+    for item in resume.get("experience_array", []):
+        if isinstance(item, dict):
+            value = item.get("description", item.get("summary", ""))
+        else:
+            value = item
+        if value:
+            bullets.append(str(value))
     return {"resume_bullets": [bullet for bullet in bullets if bullet], "cover_letter": resume.get("summary", "")}

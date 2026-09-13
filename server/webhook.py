@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def parse_callback_data(callback_data: str) -> dict[str, str]:
     parts = callback_data.split(":", 2)
-    if len(parts) != 3 or parts[0] != "job" or parts[1] not in {"approve", "skip"}:
+    if len(parts) != 3 or parts[0] != "job" or parts[1] not in {"approve", "skip", "submit", "cancel"}:
         raise ValueError("Invalid Telegram callback data")
     return {"decision": parts[1], "thread_id": parts[2], "url": ""}
 
@@ -54,7 +54,11 @@ def resume_approval(payload: dict[str, Any], graph_factory=build_graph) -> dict[
             raise ValueError(f"Checkpoint '{parsed['thread_id']}' has no active job to approve")
         if parsed["url"] and active.get("url") != parsed["url"]:
             raise ValueError("Callback does not match the active job")
-        graph.update_state(checkpoint_config(parsed["thread_id"]), {"human_decision": parsed["decision"]})
+        graph.update_state(
+            checkpoint_config(parsed["thread_id"]),
+            {"human_decision": parsed["decision"]},
+            as_node="wait_for_approval",
+        )
         result = graph.invoke(None, config=checkpoint_config(parsed["thread_id"]))
     finally:
         connection.close()
@@ -78,4 +82,6 @@ def telegram_webhook(payload: dict[str, Any]) -> dict[str, Any]:
         "skipped_jobs": len(final_state.get("skipped_jobs", [])),
     }
     logger.info("Telegram callback result: %s", response)
+    if response["error_logs"]:
+        logger.error("Telegram callback completed with application errors: %s", response["error_logs"])
     return response

@@ -11,7 +11,7 @@ from tools.job_router import route_job
 from tools.job_parser import GroqRequirementsParser
 from tools.fit_analyzer import GroqFitAnalyzer, deterministic_analysis, deterministic_materials
 from server.telegram import TelegramClient
-from tools.submission import EmailSubmitter, PlaywrightSubmitter
+from tools.submission import EmailSubmitter, GreenhouseSubmitter, PlaywrightSubmitter
 from tools.tracking import NotionTracker
 
 
@@ -28,12 +28,24 @@ def _note(state: AgentState, component: str, status: str, note: str) -> list[dic
 
 
 def discover_jobs(state: AgentState) -> AgentState:
-    criteria = state["hardcoded_criteria"]
+    criteria = state.get("hardcoded_criteria", {})
     jobs: list[JobRecord] = []
     seen: set[str] = set()
 
     configured_boards = criteria.get("greenhouse_board_urls", [])
     client = GreenhouseClient(timeout=float(criteria.get("greenhouse_timeout", 15)))
+    search_queries = criteria.get("greenhouse_search_queries", [])
+    if criteria.get("greenhouse_search_enabled") and os.getenv("EXA_API_KEY"):
+        for query in search_queries:
+            for job in client.search_jobs(query, criteria.get("company")):
+                key = job["url"].rstrip("/").lower()
+                if key not in seen:
+                    seen.add(key)
+                    jobs.append(job)
+                    if criteria.get("max_jobs") and len(jobs) >= int(criteria["max_jobs"]):
+                        break
+            if criteria.get("max_jobs") and len(jobs) >= int(criteria["max_jobs"]):
+                break
     for board_url in configured_boards:
         parsed = urlparse(board_url)
         if not parsed.scheme or not parsed.netloc:
@@ -191,7 +203,7 @@ def score_and_tailor(state: AgentState) -> AgentState:
     if not active:
         return {"status": "completed"}
 
-    criteria = state["hardcoded_criteria"]
+    criteria = state.get("hardcoded_criteria", {})
     resume = state.get("normalized_resume", {})
     description = state.get("job_description", {})
     analyzer_status = "deterministic"
@@ -222,6 +234,10 @@ def score_and_tailor(state: AgentState) -> AgentState:
     else:
         analysis = deterministic_analysis(resume, description)
         materials = deterministic_materials(resume)
+
+    resume_pdf = criteria.get("application_resume_pdf")
+    if resume_pdf:
+        materials = {**materials, "resume_pdf": resume_pdf}
 
     score = int(analysis["match_score"])
     threshold = int(criteria.get("minimum_match_score", 60))
@@ -266,6 +282,29 @@ def wait_for_approval(state: AgentState) -> AgentState:
     )
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    criteria = state.get("hardcoded_criteria", {})
+    if (
+        int(state["active_job"].get("match_score", 0)) > int(criteria.get("auto_apply_score", 90))
+        and criteria.get("submission_mode") == "greenhouse"
+    ):
+        review = GreenhouseSubmitter(
+            profile_dir=criteria.get("greenhouse_browser_profile", "runtime/greenhouse-browser"),
+            headless=False,
+            login_wait_seconds=int(criteria.get("greenhouse_login_wait_seconds", 120)),
+            post_submit_hold_seconds=int(criteria.get("greenhouse_post_submit_hold_seconds", 0)),
+        ).prepare(
+            state["active_job"],
+            criteria.get("application_profile", {}),
+            state.get("tailored_materials", {}),
+            state.get("tailored_materials", {}).get("resume_pdf"),
+        )
+        if token and chat_id:
+            TelegramClient(token, chat_id).send_final_review(state["active_job"], review)
+        return {
+            "status": "awaiting_final_submission",
+            "processing_log": _log(state, "greenhouse_application_staged", review=review),
+            "validation_notes": _note(state, "greenhouse_browser", "complete", "High-scoring job staged for final Telegram confirmation."),
+        }
     if token and chat_id and not state["active_job"].get("mock"):
         TelegramClient(token, chat_id).send_approval(
             state["active_job"],
@@ -286,6 +325,31 @@ def track_and_submit(state: AgentState) -> AgentState:
         return {"status": "completed"}
 
     decision = state.get("human_decision", "skip").lower()
+    submission_mode = state.get("hardcoded_criteria", {}).get("submission_mode", "dry_run")
+    if decision == "approve" and submission_mode == "greenhouse":
+        review = GreenhouseSubmitter(
+            profile_dir=state.get("hardcoded_criteria", {}).get("greenhouse_browser_profile", "runtime/greenhouse-browser"),
+            headless=False,
+            login_wait_seconds=int(state.get("hardcoded_criteria", {}).get("greenhouse_login_wait_seconds", 120)),
+            post_submit_hold_seconds=int(state.get("hardcoded_criteria", {}).get("greenhouse_post_submit_hold_seconds", 0)),
+        ).prepare(
+            active,
+            state.get("hardcoded_criteria", {}).get("application_profile", {}),
+            state.get("tailored_materials", {}),
+            state.get("tailored_materials", {}).get("resume_pdf"),
+        )
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID")
+        if token and chat_id:
+            TelegramClient(token, chat_id).send_final_review(active, review)
+        return {
+            "active_job": active,
+            "pending_jobs": state.get("pending_jobs", []),
+            "human_decision": "",
+            "status": "awaiting_final_submission",
+            "processing_log": _log(state, "greenhouse_application_staged", review=review),
+            "validation_notes": _note(state, "greenhouse_browser", "complete", "Application staged; final submit requires a second Telegram confirmation."),
+        }
     pending = [job for job in state.get("pending_jobs", []) if job.get("url") != active.get("url")]
     applied = [*state.get("applied_jobs", [])]
     skipped = [*state.get("skipped_jobs", [])]
@@ -293,13 +357,11 @@ def track_and_submit(state: AgentState) -> AgentState:
     confirmation: dict[str, Any] | None = None
     log = state.get("processing_log", [])
 
-    if decision == "approve":
-        submission_mode = state.get("hardcoded_criteria", {}).get(
-            "submission_mode",
-            "dry_run",
-        )
+    if decision in {"approve", "submit"}:
         submission_result: dict[str, Any] = {"channel": submission_mode}
         try:
+            if decision == "submit" and submission_mode != "greenhouse":
+                raise ValueError("Final submit is only valid for Greenhouse browser applications")
             if submission_mode == "email":
                 submitter = EmailSubmitter(
                     os.environ["SMTP_HOST"],
@@ -310,6 +372,18 @@ def track_and_submit(state: AgentState) -> AgentState:
                 submission_result = submitter.submit(
                     active,
                     state.get("normalized_resume", {}),
+                    state.get("tailored_materials", {}),
+                    state.get("tailored_materials", {}).get("resume_pdf"),
+                )
+            elif submission_mode == "greenhouse":
+                submission_result = GreenhouseSubmitter(
+                    profile_dir=state.get("hardcoded_criteria", {}).get("greenhouse_browser_profile", "runtime/greenhouse-browser"),
+                    headless=False,
+                    login_wait_seconds=int(state.get("hardcoded_criteria", {}).get("greenhouse_login_wait_seconds", 120)),
+                    post_submit_hold_seconds=int(state.get("hardcoded_criteria", {}).get("greenhouse_post_submit_hold_seconds", 0)),
+                ).submit(
+                    active,
+                    state.get("hardcoded_criteria", {}).get("application_profile", {}),
                     state.get("tailored_materials", {}),
                     state.get("tailored_materials", {}).get("resume_pdf"),
                 )
@@ -391,7 +465,7 @@ def track_and_submit(state: AgentState) -> AgentState:
                 "at": _now(),
                 "event": event,
                 "url": active["url"],
-                "submission": submission_result if decision == "approve" else None,
+                "submission": submission_result if decision in {"approve", "submit"} else None,
                 "tracking": tracking_status,
             },
         ],

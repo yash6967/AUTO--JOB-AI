@@ -39,9 +39,35 @@ class TelegramClient:
             raise RuntimeError(f"Telegram API rejected approval message: {result}")
         return result
 
+    def send_final_review(self, job: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
+        missing = review.get("missing_fields", [])
+        text = (
+            f"Greenhouse application ready for final review\n"
+            f"Role: {job.get('title', 'Unknown')}\n"
+            f"Company: {job.get('company', 'Unknown')}\n"
+            f"Missing fields: {', '.join(missing) if missing else 'none'}\n"
+            f"Review screenshot: {review.get('screenshot', 'not captured')}"
+        )
+        payload = {
+            "chat_id": self.chat_id,
+            "text": text,
+            "reply_markup": {
+                "inline_keyboard": [[
+                    {"text": "Submit application", "callback_data": self.callback_data(job, "submit")},
+                    {"text": "Cancel", "callback_data": self.callback_data(job, "cancel")},
+                ]]
+            },
+        }
+        response = self.session.post(self.endpoint, json=payload, timeout=self.timeout)
+        response.raise_for_status()
+        result = response.json()
+        if not result.get("ok"):
+            raise RuntimeError(f"Telegram API rejected final-review message: {result}")
+        return result
+
     @staticmethod
     def callback_data(job: dict[str, Any], decision: str) -> str:
-        if decision not in {"approve", "skip"}:
+        if decision not in {"approve", "skip", "submit", "cancel"}:
             raise ValueError(f"Unsupported Telegram decision: {decision}")
         thread_id = job.get("thread_id")
         url = job.get("url")

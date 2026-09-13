@@ -48,7 +48,11 @@ def test_resume_approval_updates_matching_checkpoint(monkeypatch):
     result = resume_approval({"callback_query": {"data": "job:skip:thread-1"}}, factory)
 
     assert result["decision"] == "skip"
-    graph.update_state.assert_called_once()
+    graph.update_state.assert_called_once_with(
+        {"configurable": {"thread_id": "thread-1"}},
+        {"human_decision": "skip"},
+        as_node="wait_for_approval",
+    )
     graph.invoke.assert_called_once()
     connection.close.assert_called_once()
 

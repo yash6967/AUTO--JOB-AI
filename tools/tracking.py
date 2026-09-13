@@ -27,6 +27,19 @@ class NotionTracker:
 
     def record_decision(self, job: dict[str, Any], decision: str, document_paths: list[str] | None = None) -> dict[str, Any]:
         self.validate_database()
+        def text_value(value: Any, fallback: str) -> str:
+            if value is None:
+                return fallback
+            text = str(value).strip()
+            return text or fallback
+
+        title = text_value(job.get("title"), "Unknown role")
+        company = text_value(job.get("company"), "Unknown company")
+        url = text_value(job.get("url"), "")
+        try:
+            match_score = float(job.get("match_score", 0) or 0)
+        except (TypeError, ValueError):
+            match_score = 0
         status_names = {
             "approved": "Approved",
             "approve": "Approved",
@@ -38,13 +51,15 @@ class NotionTracker:
         }
         status_name = status_names.get(decision.lower(), decision)
         properties = {
-            "Job Title": {"title": [{"text": {"content": job.get("title", "Unknown role")}}]},
-            "Company": {"rich_text": [{"text": {"content": job.get("company", "Unknown company")}}]},
-            "Match Score": {"number": job.get("match_score", 0)},
+            "Job Title": {"title": [{"text": {"content": title}}]},
+            "Company": {"rich_text": [{"text": {"content": company}}]},
+            "Match Score": {"number": match_score},
             "Status": {"status": {"name": status_name}},
             "Date Added": {"date": {"start": datetime.now(UTC).date().isoformat()}},
-            "Job URL": {"url": job.get("url")},
+            "Job URL": {"url": url or None},
         }
-        if document_paths:
-            properties["Documents"] = {"rich_text": [{"text": {"content": ", ".join(document_paths)}}]}
+        documents = [text_value(path, "") for path in (document_paths or [])]
+        documents = [path for path in documents if path]
+        if documents:
+            properties["Documents"] = {"rich_text": [{"text": {"content": ", ".join(documents)}}]}
         return self.client.pages.create(parent={"database_id": self.database_id}, properties=properties)

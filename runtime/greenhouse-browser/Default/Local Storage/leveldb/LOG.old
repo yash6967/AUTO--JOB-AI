@@ -1,0 +1,6 @@
+2026/09/13-20:09:14.544 5d2738 Reusing MANIFEST /Users/shreyas/Desktop/CODE/LEMMA/AUTO--JOB-AI/runtime/greenhouse-browser/Default/Local Storage/leveldb/MANIFEST-000001
+2026/09/13-20:09:14.547 5d2738 Recovering log #123
+2026/09/13-20:09:14.548 5d2738 Reusing old log /Users/shreyas/Desktop/CODE/LEMMA/AUTO--JOB-AI/runtime/greenhouse-browser/Default/Local Storage/leveldb/000123.log 
+2026/09/13-20:09:17.827 5d273b Level-0 table #128: started
+2026/09/13-20:09:17.831 5d273b Level-0 table #128: 129111 bytes OK
+2026/09/13-20:09:17.837 5d273b Delete type=0 #123

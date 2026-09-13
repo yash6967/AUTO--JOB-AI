@@ -1,16 +1,16 @@
 {
   "contact": {
-    "name": "Replace with your name",
-    "email": "you@example.com",
-    "phone": "",
-    "location": "",
-    "linkedin": "",
-    "github": "",
+    "name": "Atharva Bhawalkar",
+    "email": "atharvabhawalkar147@gmail.com",
+    "phone": "9009399299",
+    "location": "Gurugram",
+    "linkedin": "https://www.linkedin.com/in/atharvabhawalkar/",
+    "github": "https://github.com/DarthAtharva",
     "portfolio": ""
   },
-  "summary": "Replace with your professional summary.",
-  "experience_array": [],
+  "summary": "TEST_PROFESSIONAL_SUMMARY",
+  "experience_array": [{"description": "Built APIs"}],
   "skills_list": ["Python", "FastAPI", "PySpark", "Snowflake"],
-  "education": [],
-  "additional_information": []
+  "education": ["The LNM Institute of Information Technology"],
+  "additional_information": [""]
 }

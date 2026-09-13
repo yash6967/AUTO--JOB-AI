@@ -17,6 +17,15 @@ def test_deterministic_analysis_and_materials_preserve_resume_facts():
     assert materials == {"resume_bullets": ["Built APIs."], "cover_letter": "Backend developer."}
 
 
+def test_deterministic_materials_accept_string_experience_entries():
+    materials = deterministic_materials({"summary": "Backend developer.", "experience_array": ["Built APIs.", "Maintained services."]})
+
+    assert materials == {
+        "resume_bullets": ["Built APIs.", "Maintained services."],
+        "cover_letter": "Backend developer.",
+    }
+
+
 def test_groq_fit_analyzer_validates_mocked_structured_outputs():
     class FakeModel:
         def invoke(self, prompt):

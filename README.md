@@ -10,6 +10,7 @@ Implemented and tested:
 - Shared multi-job queue state
 - Resume normalization for JSON, PDF, DOCX, TXT, and Markdown
 - Greenhouse board discovery through the Greenhouse API
+- Optional Exa web search filtered to public Greenhouse job URLs
 - Standard and custom Greenhouse URL support
 - Lever API routing
 - Playwright fallback for generic job pages
@@ -21,10 +22,12 @@ Implemented and tested:
 - FastAPI Telegram webhook for checkpoint resumption
 - Notion application tracking
 - Dry-run, SMTP email, and Playwright submission modes
+- Authenticated Greenhouse candidate-browser flow with persistent local session
+- Automatic staging for matches above the configured score and second Telegram submit confirmation
 - Structured application confirmations and persistent error logs
 - Mocked integration and graph tests
 
-The current test suite contains 25 tests.
+The current test suite contains 26 tests.
 
 ## Requirements
 
@@ -74,7 +77,48 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
 SMTP_PASSWORD=
+GREENHOUSE_AUTO_APPLY_SCORE=90
+GREENHOUSE_BROWSER_PROFILE=runtime/greenhouse-browser
+GREENHOUSE_LOGIN_WAIT_SECONDS=120
+GREENHOUSE_POST_SUBMIT_HOLD_SECONDS=0
 ```
+
+For the Greenhouse candidate flow on macOS:
+
+```env
+SUBMISSION_MODE=greenhouse
+GREENHOUSE_AUTO_APPLY_SCORE=90
+GREENHOUSE_BROWSER_PROFILE=runtime/greenhouse-browser
+GREENHOUSE_LOGIN_WAIT_SECONDS=120
+```
+
+The candidate profile and infrequently changing application answers live in
+`assets/application_profile.json`. Edit that file or pass a replacement with
+`--application-profile`. It intentionally contains blank demo values until you
+fill in your own details.
+
+The CLI automatically uploads the only PDF found in `assets`. To choose a
+different file explicitly, use `--resume-pdf path/to/resume.pdf`.
+
+For debugging Greenhouse email verification or OTP challenges, set
+`GREENHOUSE_POST_SUBMIT_HOLD_SECONDS=300` for the CLI run. After the final
+Telegram submit action, the visible browser remains open for five minutes and
+the terminal prints the current page text while you enter the code manually.
+
+When `EXA_API_KEY` is present, the run also searches the public web for
+Greenhouse listings using the configured roles and locations. Results are
+filtered to `boards.greenhouse.io` and deduplicated with configured boards.
+
+On the first Greenhouse run, Chromium opens the candidate portal using a
+persistent local profile. Complete login, MFA, and any CAPTCHA yourself. The
+password is not read by or stored in this application. The session is reused on
+later runs from `GREENHOUSE_BROWSER_PROFILE`.
+
+Jobs scoring above 90 are staged automatically. Telegram receives a review
+message with the captured application screenshot and a `Submit application`
+button. The form is submitted only after that second Telegram confirmation.
+Unknown required questions, MFA, CAPTCHA, and missing resume uploads stop the
+application and are reported as manual fields instead of being guessed.
 
 `NOTION_DATABASE_ID` must be the database ID, not the parent page ID. The database must be shared with the Notion integration. The current tracker expects these database properties:
 
@@ -96,7 +140,7 @@ Valid application status mappings are `Approved`, `Applied`, `Rejected`, and `Di
 The expected result is currently:
 
 ```text
-25 passed
+26 passed
 ```
 
 ## Offline CLI Smoke Test
@@ -255,6 +299,10 @@ SUBMISSION_MODE=playwright
 ```
 
 Playwright maps standard contact fields, fills a cover letter, uploads `tailored_materials["resume_pdf"]` when available, and submits the form. Form selectors vary by site and may require provider-specific work.
+
+Greenhouse mode is the provider-specific alternative: it uses labels and
+required-field checks, captures a review screenshot, and requires a separate
+final confirmation before clicking the submit control.
 
 ## Verify Submission Results
 

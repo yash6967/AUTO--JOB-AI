@@ -36,7 +36,7 @@ def build_graph(database_path: str | Path = "runtime/agent.sqlite") -> tuple[Any
     builder.add_edge("wait_for_approval", "track_and_submit")
     builder.add_conditional_edges(
         "track_and_submit",
-        lambda state: "route_and_parse_job" if state.get("pending_jobs") else END,
+        lambda state: END if state.get("status") == "awaiting_final_submission" else ("route_and_parse_job" if state.get("pending_jobs") else END),
         {"route_and_parse_job": "route_and_parse_job", END: END},
     )
 

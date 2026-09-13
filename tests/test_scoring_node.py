@@ -23,6 +23,15 @@ def test_qualifying_score_keeps_job_pending_for_approval():
     assert result["tailored_materials"]["cover_letter"] == "Backend developer."
 
 
+def test_qualifying_score_carries_resume_pdf_into_application_materials():
+    state = _state(80)
+    state["hardcoded_criteria"]["application_resume_pdf"] = "assets/resume.pdf"
+
+    result = score_and_tailor(state)
+
+    assert result["tailored_materials"]["resume_pdf"] == "assets/resume.pdf"
+
+
 def test_below_threshold_score_moves_job_to_skipped():
     result = score_and_tailor(_state(40))
 
